@@ -3,10 +3,14 @@ class BitmexBase:
         self.redis = redis
         self.stop_execution = False
 
-    async def read_stream(self, stream_key, start=None, stop=None, count=None):
+    async def read_stream(
+        self, stream_key, start=None, stop=None, count=None, reverse=False
+    ):
         start = start or "-"
         stop = stop or "+"
-        data = await self.redis.xrange(stream_key, start=start, stop=stop, count=count)
+        command = "xrange" if not reverse else "xrevrange"
+        cmd = getattr(self.redis, command)
+        data = await cmd(stream_key, start=start, stop=stop, count=count)
         if start and len(data):
             if data[0][0] == start:
                 data = data[1:]

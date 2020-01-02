@@ -182,6 +182,7 @@ class BitmexRawProcessor(BitmexBase):
         return "&".join([param for param in (start, stop) if param])
 
     async def filter_data(self, symbol, data):
+        # Keys
         trade_stream_key = get_trade_stream_key(symbol)
         websocket_stream_key = get_websocket_stream_key(symbol)
         api_stream_key = get_api_stream_key(symbol)
