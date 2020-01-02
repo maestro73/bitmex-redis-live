@@ -1,0 +1,12 @@
+PYTEST_CURRENT_TEST = "PYTEST_CURRENT_TEST"
+CONNECTION_KEY = "bitmex-connection"
+ALL_KEYS = "bitmex-all-keys"
+SYMBOL_READY_KEY = "bitmex-symbol-ready"
+WEBSOCKET_CURSOR_SUFFIX = "websocket-cursor"
+WEBSOCKET_KEY_SUFFIX = "websocket-buffer"
+API_KEY_SUFFIX = "api-buffer"
+TRADE_KEY_SUFFIX = "trade"
+AGGREGATE_CURSOR_SUFFIX = "aggregate-cursor"
+AGGREGATE_KEY_SUFFIX = "aggregate"
+AGGREGATE_CACHE_KEY_SUFFIX = "aggregate-cache"
+MAX_ITEMS = 10000
