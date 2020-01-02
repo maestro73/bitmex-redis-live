@@ -85,6 +85,9 @@ class BitmexRawProcessor(BitmexBase):
         for stream_key, redis_id, trade in all_data:
             # No longer necessary.
             del trade["symbol"]
+            # Standardize
+            trade["volume"] = trade["size"]
+            del trade["size"]
             await self.redis.xadd(trade_stream_key, trade)
         cursor = websocket_data[-1][1] if len(websocket_data) else None
         if cursor:

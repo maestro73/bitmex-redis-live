@@ -2,6 +2,8 @@ import asyncio
 from collections import OrderedDict
 from math import floor
 
+import pendulum
+
 from .base import BitmexBase
 from .constants import ALL_KEYS, MAX_ITEMS
 from .lib import (
@@ -57,8 +59,9 @@ class BitmexAggregator(BitmexBase):
             high_thresh = agg_price + XBTUSD_AGGREGATE_BY
             low_thresh = agg_price - XBTUSD_AGGREGATE_BY
             # Increment.
-            agg["timestamp"] = trade["timestamp"]
-            agg["size"] = int(agg["size"]) + int(trade["size"])
+            agg["close"] = trade["timestamp"]
+            agg["volume"] = int(agg["volume"]) + int(trade["volume"])
+            agg["ticks"] = int(agg["ticks"]) + 1
             agg["imbalance"] = int(agg["imbalance"]) + self.get_imbalance(trade)
             agg["homeNotional"] = float(agg["homeNotional"]) + float(
                 trade["homeNotional"]
@@ -67,9 +70,11 @@ class BitmexAggregator(BitmexBase):
                 agg_stream_key = get_aggregate_stream_key(symbol)
                 agg = OrderedDict(
                     [
-                        ("timestamp", agg["timestamp"]),
+                        ("timestamp", agg["close"]),
+                        ("time", self.get_time(agg)),
                         ("price", price),
-                        ("size", agg["size"]),
+                        ("volume", agg["volume"]),
+                        ("ticks", agg["ticks"]),
                         ("imbalance", agg["imbalance"]),
                         ("homeNotional", agg["homeNotional"]),
                     ]
@@ -80,8 +85,11 @@ class BitmexAggregator(BitmexBase):
                 await self.reset_aggregate_hash(
                     symbol,
                     {
+                        "open": trade["timestamp"],
+                        "close": "",
                         "price": agg["price"],
-                        "size": 0,
+                        "volume": 0,
+                        "ticks": 0,
                         "imbalance": 0,
                         "homeNotional": 0,
                     },
@@ -89,14 +97,26 @@ class BitmexAggregator(BitmexBase):
             else:
                 await self.redis.hmset_dict(agg_hash_key, agg)
         else:
+            trade["open"] = trade["timestamp"]
+            trade["close"] = ""
+            del trade["timestamp"]
             trade["price"] = floor(float(trade["price"]))
+            trade["ticks"] = 1
             trade["imbalance"] = self.get_imbalance(trade)
             await self.reset_aggregate_hash(symbol, trade)
 
-    def get_imbalance(self, trade):
-        tick_direction = trade["tickDirection"]
+    def get_imbalance(self, data):
+        tick_direction = data["tickDirection"]
         direction = 1 if tick_direction in ("PlusTick", "ZeroPlusTick") else -1
-        return int(trade["size"]) * direction
+        return int(data["volume"]) * direction
+
+    def get_time(self, data):
+        assert "open" in data and "close" in data
+        open_time = pendulum.parse(data["open"])
+        close_time = pendulum.parse(data["close"])
+        assert close_time >= open_time
+        diff = close_time - open_time
+        return diff.total_seconds()
 
     async def reset_aggregate_hash(self, symbol, data):
         assert isinstance(data, dict)
