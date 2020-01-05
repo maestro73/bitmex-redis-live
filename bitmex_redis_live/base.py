@@ -1,6 +1,7 @@
 class BitmexBase:
-    def __init__(self, redis):
+    def __init__(self, redis, symbols):
         self.redis = redis
+        self.symbols = symbols
         self.stop_execution = False
 
     async def read_stream(

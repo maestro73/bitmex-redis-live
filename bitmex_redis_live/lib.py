@@ -3,15 +3,7 @@ from collections import OrderedDict
 
 import aioredis
 
-from .constants import (
-    AGGREGATE_CACHE_KEY_SUFFIX,
-    AGGREGATE_CURSOR_SUFFIX,
-    AGGREGATE_KEY_SUFFIX,
-    API_KEY_SUFFIX,
-    TRADE_KEY_SUFFIX,
-    WEBSOCKET_CURSOR_SUFFIX,
-    WEBSOCKET_KEY_SUFFIX,
-)
+from .constants import TRADE_KEY_SUFFIX, TRADE_STREAM_SUFFIX
 
 # MARK_PRICE instrument:XBT,
 
@@ -31,32 +23,12 @@ async def get_redis():
     return redis
 
 
-def get_trade_stream_key(symbol):
+def trade_stream(symbol):
+    return f"{symbol}-{TRADE_STREAM_SUFFIX}"
+
+
+def trade_key(symbol):
     return f"{symbol}-{TRADE_KEY_SUFFIX}"
-
-
-def get_websocket_stream_key(symbol):
-    return f"{symbol}-{WEBSOCKET_KEY_SUFFIX}"
-
-
-def get_websocket_cursor_key(symbol):
-    return f"{symbol}-{WEBSOCKET_CURSOR_SUFFIX}"
-
-
-def get_api_stream_key(symbol):
-    return f"{symbol}-{API_KEY_SUFFIX}"
-
-
-def get_aggregate_cursor_key(symbol):
-    return f"{symbol}-{AGGREGATE_CURSOR_SUFFIX}"
-
-
-def get_aggregate_stream_key(symbol):
-    return f"{symbol}-{AGGREGATE_KEY_SUFFIX}"
-
-
-def get_aggregate_hash_key(symbol):
-    return f"{symbol}-{AGGREGATE_CACHE_KEY_SUFFIX}"
 
 
 def get_trades(trades):

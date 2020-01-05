@@ -61,22 +61,24 @@ class BitmexAggregator(BitmexBase):
             # Increment.
             agg["close"] = trade["timestamp"]
             agg["volume"] = int(agg["volume"]) + int(trade["volume"])
+            agg["volumeImbalance"] = int(agg["volumeImbalance"]) + self.get_imbalance(
+                trade, key="volume"
+            )
             agg["ticks"] = int(agg["ticks"]) + 1
-            agg["imbalance"] = int(agg["imbalance"]) + self.get_imbalance(trade)
-            agg["homeNotional"] = float(agg["homeNotional"]) + float(
-                trade["homeNotional"]
+            agg["tickImbalance"] = int(agg["tickImbalance"]) + self.get_imbalance(
+                trade, key="tick"
             )
             if price >= high_thresh or price <= low_thresh:
                 agg_stream_key = get_aggregate_stream_key(symbol)
                 agg = OrderedDict(
                     [
                         ("timestamp", agg["close"]),
-                        ("time", self.get_time(agg)),
+                        ("duration", self.get_duration(agg)),
                         ("price", price),
                         ("volume", agg["volume"]),
+                        ("volumeImbalance", agg["volumeImbalance"]),
                         ("ticks", agg["ticks"]),
-                        ("imbalance", agg["imbalance"]),
-                        ("homeNotional", agg["homeNotional"]),
+                        ("tickImbalance", agg["tickImbalance"]),
                     ]
                 )
                 print(agg)
@@ -89,8 +91,9 @@ class BitmexAggregator(BitmexBase):
                         "close": "",
                         "price": agg["price"],
                         "volume": 0,
+                        "volumeImbalance": 0,
                         "ticks": 0,
-                        "imbalance": 0,
+                        "ticksImbalance": 0,
                         "homeNotional": 0,
                     },
                 )
@@ -101,16 +104,18 @@ class BitmexAggregator(BitmexBase):
             trade["close"] = ""
             del trade["timestamp"]
             trade["price"] = floor(float(trade["price"]))
+            trade["volumeImbalance"] = self.get_imbalance(trade, key="volume")
             trade["ticks"] = 1
-            trade["imbalance"] = self.get_imbalance(trade)
+            trade["tickImbalance"] = self.get_imbalance(trade, key="ticks")
             await self.reset_aggregate_hash(symbol, trade)
 
-    def get_imbalance(self, data):
+    def get_imbalance(self, data, key=None):
+        assert key in ("volume", "ticks")
         tick_direction = data["tickDirection"]
         direction = 1 if tick_direction in ("PlusTick", "ZeroPlusTick") else -1
-        return int(data["volume"]) * direction
+        return int(data[key]) * direction
 
-    def get_time(self, data):
+    def get_duration(self, data):
         assert "open" in data and "close" in data
         open_time = pendulum.parse(data["open"])
         close_time = pendulum.parse(data["close"])
@@ -128,3 +133,19 @@ class BitmexAggregator(BitmexBase):
             else:
                 agg[key] = value
         await self.redis.hmset_dict(agg_hash_key, agg)
+
+
+def get_aggregate_cursor_key(symbol):
+    return f"{symbol}-{AGGREGATE_CURSOR_SUFFIX}"
+
+
+def get_aggregate_stream_key(symbol):
+    return f"{symbol}-{AGGREGATE_KEY_SUFFIX}"
+
+
+def get_aggregate_hash_key(symbol):
+    return f"{symbol}-{AGGREGATE_CACHE_KEY_SUFFIX}"
+
+
+def trade_cursor(symbol):
+    return f"{symbol}-{TRADE_CURSOR_SUFFIX}"
