@@ -6,7 +6,7 @@ import regex
 
 from .base import BitmexBase
 from .constants import ALL_KEYS
-from .lib import trade_key, trade_stream
+from .lib import trade_hash, trade_stream
 
 
 class BitmexRawProcessor(BitmexBase):
@@ -24,8 +24,8 @@ class BitmexRawProcessor(BitmexBase):
 
     async def set_all_keys(self):
         streams = [trade_stream(symbol) for symbol in self.symbols]
-        keys = [trade_key(symbol) for symbol in self.symbols]
-        all_keys = streams + keys
+        hashes = [trade_hash(symbol) for symbol in self.symbols]
+        all_keys = streams + hashes
         await self.redis.sadd(ALL_KEYS, *all_keys)
 
     async def main(self, trade):
@@ -40,7 +40,11 @@ class BitmexRawProcessor(BitmexBase):
         while len(self.trades[symbol]):
             trade = self.trades[symbol].pop(0)
             await self.redis.xadd(trade_stream(symbol), trade)
-            await self.redis.set(trade_key(symbol), trade["trdMatchID"])
+            await self.set_cursor(symbol, trade)
+
+    async def set_cursor(self, symbol, trade):
+        data = {"trdMatchID": trade["trdMatchID"], "timestamp": trade["timestamp"]}
+        await self.redis.hmset(trade_hash(symbol), data)
 
     async def fetch_missing(self):
         for symbol in self.symbols:
@@ -127,7 +131,7 @@ class BitmexRawProcessor(BitmexBase):
         return filtered
 
     async def filter_trdMatchID(self, symbol, data, reverse=False):
-        trdMatchID = await self.redis.get(trade_key(symbol))
+        trdMatchID = await self.redis.get(trade_hash(symbol))
         if trdMatchID:
             trdMatchIDs = [d["trdMatchID"] for d in data]
             try:

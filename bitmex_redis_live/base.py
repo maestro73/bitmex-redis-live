@@ -1,6 +1,9 @@
+from lib import get_redis
+
+
 class BitmexBase:
     def __init__(self, redis, symbols):
-        self.redis = redis
+        self.redis = get_redis()
         self.symbols = symbols
         self.stop_execution = False
 

@@ -4,16 +4,16 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
+pytest-asyncio = "*"
 
 [packages]
-aioredis = "*"
 hiredis = "*"
 ujson = "*"
 uvloop = "*"
 websockets = "*"
 pendulum = "*"
 httpx = "*"
-pytest-asyncio = "*"
+aredis = "*"
 
 [requires]
-python_version = "3.6"
+python_version = "3.6.9"

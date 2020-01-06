@@ -10,9 +10,11 @@ from bitmex_redis_live.websocket_client import BitmexWebsocketClient
 
 async def main(loop, symbols=[]):
     assert len(symbols)
-    redis = await get_redis()
+
+    redis = get_redis()
     await redis.flushdb()
-    websocket_client = BitmexWebsocketClient(redis, symbols)
+
+    websocket_client = BitmexWebsocketClient(symbols)
     # raw_processor = BitmexRawProcessor(redis, symbols)
     # aggregator = BitmexAggregator(redis, symbols)
     # Bitmex trades, added to "{symbol}-websocket-buffer" stream.
@@ -26,8 +28,6 @@ async def main(loop, symbols=[]):
     done, pending = await asyncio.wait(
         [websocket_task], return_when=asyncio.FIRST_COMPLETED
     )
-    redis.close()
-    await redis.wait_closed()
 
 
 if __name__ == "__main__":

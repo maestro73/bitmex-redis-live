@@ -1,9 +1,9 @@
 import os
 from collections import OrderedDict
 
-import aioredis
+from aredis import StrictRedis
 
-from .constants import TRADE_KEY_SUFFIX, TRADE_STREAM_SUFFIX
+from .constants import TRADE_HASH_KEY_SUFFIX, TRADE_STREAM_SUFFIX
 
 # MARK_PRICE instrument:XBT,
 
@@ -15,20 +15,20 @@ def set_environment():
             os.environ[key] = value.rstrip()
 
 
-async def get_redis():
-    url = os.environ.get("REDIS_URL", "localhost?encoding=utf-8")
+def get_redis():
+    url = os.environ.get("REDIS_URL", "localhost")
     password = os.environ.get("REDIS_PASS", None)
-    params = f"&password={password}" if password else ""
-    redis = await aioredis.create_redis_pool(f"redis://{url}{params}", maxsize=256)
-    return redis
+    passwd = f"&password={password}" if password else ""
+    params = f"?encoding=utf-8{passwd}"
+    return StrictRedis(f"redis://{url}{params}", max_connections=256)
 
 
 def trade_stream(symbol):
     return f"{symbol}-{TRADE_STREAM_SUFFIX}"
 
 
-def trade_key(symbol):
-    return f"{symbol}-{TRADE_KEY_SUFFIX}"
+def trade_hash(symbol):
+    return f"{symbol}-{TRADE_HASH_KEY_SUFFIX}"
 
 
 def get_trades(trades):
